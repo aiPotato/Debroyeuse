@@ -48,10 +48,8 @@ def shred (image, nb, prefix) :
     for i in range(nb) :
         if i != nb-1 :
             newImg = image.crop((i*new_x_size,0,(i+1)*new_x_size,y_size))
-            # newImg = Image.new("RGB",(new_x_size,y_size))
         else :
             newImg = image.crop((i*new_x_size,0, i*new_x_size + last_x_size ,y_size))
-            # newImg = Image.new('RGB',(last_x_size,y_size))
         newImg.save(prefix+str(i+1)+".png")
 
 if __name__ == "__main__" :
