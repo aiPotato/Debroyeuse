@@ -117,7 +117,7 @@ class Pattern(object):
         return self.__surface
 
     def distance(self,p2):
-        """between
+        """
         Return the distance between the patterns self and p2
         :param p2: Pnother pattern
         :type p2: Pattern
