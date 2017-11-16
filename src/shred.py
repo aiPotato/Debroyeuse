@@ -38,18 +38,20 @@ def shred (image, nb, prefix) :
     :side effect: creates new image files
     :return: None
     """
+    x_size, y_size = image.size
 
-    new_x_size = image.size[0]//nb
-    last_x_size = image.size[0]//nb + image.size[0]%nb
+
+    new_x_size = x_size//nb
+    last_x_size = x_size//nb + image.size[0]%nb
 
     for i in range(nb) :
         if i != nb-1 :
-            newImg = Image.new("RGB",(new_x_size,image.size[1]))
+            newImg = image.crop((i*new_x_size,0,(i+1)*new_x_size,y_size))
         else :
-            newImg = Image.new('RGB',last_x_size,image.size[1])
-        newImg.save(prefix+str(i+1))
+            newImg = image.crop((i*new_x_size,0, i*new_x_size + last_x_size ,y_size))
+        newImg.save(prefix+str(i+1)+".png")
 
 if __name__ == "__main__" :
     import sys
-    if len(sys.argv) == 3 :
-        main(sys.argv[1], sys.argv[2], sys.argv[3])
+    if len(sys.argv) == 4 :
+        main(sys.argv[1], int(sys.argv[2]), sys.argv[3])
