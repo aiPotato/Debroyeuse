@@ -37,10 +37,10 @@ class Pattern(object):
 
         >>> p1=Pattern([(1,1),(1,1),(1,1),(1,1)])
         >>> p1.get_gravity()
-        (1, 1)
+        (1.0, 1.0)
         >>> p1=Pattern([(1,1),(-1,-1),(-1,-1),(1,1)])
         >>> p1.get_gravity()
-        (0, 0)
+        (0.0, 0.0)
         """
         gravity_center=[0,0]
         coords=self.get_coords()
@@ -49,8 +49,8 @@ class Pattern(object):
         for i in range(surface):
             gravity_center[0] += coords[i][0]
             gravity_center[1] += coords[i][1]
-        gravity_center[0]//=surface
-        gravity_center[1]//=surface
+        gravity_center[0]/=surface
+        gravity_center[1]/=surface
         return tuple(gravity_center)
 
     def __setMoments(self):
@@ -79,9 +79,9 @@ class Pattern(object):
         x_grav, y_grav = self.get_gravity()
         coords = self.get_coords()
         moment = 0.
-        for i in range(1,self.get_surface()+1) :
-            x_i, y_i = coords[i-1]
-            moment += (x_i - x_grav)**d * (y_i - y_grav)**e
+        for i in range(len(coords)) :
+            x_i, y_i = coords[i]
+            moment += ((x_i - x_grav)**d) * ((y_i - y_grav)**e)
         return moment
 
     def get_coords(self):
@@ -121,17 +121,21 @@ class Pattern(object):
         Return the distance between the patterns self and p2
         :param p2: Pnother pattern
         :type p2: Pattern
-        :rtype: a non negative floats
+        :return: a non negative floats
+        :rtype: float
         :Examples:
 
         >>> p1=Pattern([(3,1),(4,1),(5,3)])
         >>> p2=p1
         >>> p1.distance(p2)
         0.0
+        >>> p2=Pattern([(8,7),(12,5),(2,4)])
+        >>> p1.distance(p2)
+        51.99999999999997
         """
-        greater = (self.get_moments()[0] - p2.get_moments()[0])**2**(1/2)
+        greater = abs(self.get_moments()[0] - p2.get_moments()[0])
         for i in range(1, len(self.get_moments())):
-            tmp=(self.get_moments()[i] - p2.get_moments()[i])**2**(1/2)
+            tmp=abs(self.get_moments()[i] - p2.get_moments()[i])
             if greater < tmp :
                 greater = tmp
         return greater
