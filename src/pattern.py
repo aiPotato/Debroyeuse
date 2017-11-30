@@ -140,6 +140,9 @@ class Pattern(object):
                 greater = tmp
         return greater
 
+    def __eq__(self,other) :
+        return self.distance(other) == 0
+
 if __name__ == '__main__' :
     import doctest
     doctest.testmod()

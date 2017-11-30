@@ -127,33 +127,45 @@ def catalog_append (image) :
                 CATALOG.append(Pattern(extract_pattern(image, (j,i))))
 
 
-def generate_catalog (path, prefix) :
+def generate_catalog (images) :
     """
     Create the catalog containing all the valid pattern in all the bands
-    :param path: the path to the folder containing the pictures
-    :type path: str
-    :param prefix: the prefix name of the pictures
-    :type prefix: str
+    :param images: a list of image streams
+    :type images: list
+
     """
-    nb = number_of_images(path, prefix)
-    for i in range (nb) :
-        img = Image.open(path+prefix+str(i+1)+".png")
-        img = img.convert('RGB')
+    for img in images :
         catalog_append(img)
 
 
+def clean_catalog() :
+    """
+    Deletes doubles in the CATALOG of patterns
+    """
+    copy = CATALOG.copy()
+    for i in copy :
+        for j in range:
+            pass
 
-def score_calculation(image):
+
+
+
+def score_calculation(leftImage, rightImage):
     """
-    Computes the score of theimage:
-para:m image: The imageyou want to compute score
-:type image: Image
+    Computes the score of the image
+    :param image: The image you want to compute score
+    :type image: Image
     """
+
+    frontier = leftImage.size[0]
+
+    image = join_pictures(leftImage, rightImage)
+
     x_size, y_size = image.size
     unshred_patterns = []
     score=0
     for i in range(y_size):
-        for j in range(x_size):
+        for j in range(frontier-2,frontier+3) :
             if is_blue((j,i), image):
                 unshred_patterns.append( Pattern(extract_pattern(image,(j,i),colors.green,is_blue)) )
 
@@ -181,6 +193,120 @@ def join_pictures (leftImage, rightImage):
     imJoin.paste(rightImage, (xsizel,0) )
 
     return imJoin
+
+def open_image (path) :
+    """
+    open an image in rgb mode
+    """
+    return Image.open(path).convert("RGB")
+
+def images_stream (path, prefix) :
+    """
+    Return a list of streams of images
+    """
+    nb_image = number_of_images(path,prefix)
+    images = []
+    for i in range(nb_image) :
+        images.append(open_image(path+prefix+str(i+1)+".png"))
+
+    return images
+
+def find_extremities (images) :
+    """
+    Color the extremity pattern of all the images in the list images
+    """
+    for img in images :
+        find_extremity_patterns(img)
+
+def compute_score_matrix (path, prefix) :
+    """
+    Return the matrix of the scores
+    """
+
+    images = images_stream(path,prefix)
+
+    find_extremities(images)
+
+    generate_catalog(images)
+
+    nb_image = len(images)
+
+    matrix = []
+
+    for i in range(nb_image) :
+        scores = []
+        imLeft = images[i]
+
+        for j in range(nb_image) :
+
+            if i == j :
+                scores.append(None)
+            else :
+                imRight = images[j]
+
+                scores.append (score_calculation(imLeft, imRight))
+
+        matrix.append(scores)
+
+    return matrix
+
+def prefix_couples(score_matrix) :
+    """
+    give the list of the matching couples of pictures
+    """
+
+    couples = []
+
+    for i in range(len(score_matrix)) :
+        maxScore = 0
+        maxIndex = 0
+        for j in range(len(score_matrix[i])) :
+            if score_matrix[i][j] == None :
+                continue
+            elif maxScore < score_matrix[i][j]:
+                maxScore = score_matrix[i][j]
+                maxIndex = j
+
+        if maxScore == 0 :
+            couples.append((i+1,))
+        else :
+            couples.append((i+1,maxIndex+1))
+
+    return couples
+
+def restore_order(couples) :
+    """
+    Gives the order of the images in order to recreate it
+    :param couples: a list of tuples containing the indices of the matching pairs of pictures
+    :type couples: list
+    """
+    occDict = occur_dict(couples)
+
+    keys = occDict.keys()
+    values = occDict.values()
+
+    index = 0
+
+    for i in range(len(values)) :
+        if len(values[i]) == 1 :                                    # unfinished
+            first = keys[i]
+
+
+
+
+def occur_dict(couples) :
+    """
+    create the dictionnary of occurences and positions of each prefix in the list of tuples 'couples'
+    """
+    occ = dict()
+    for i in range(len(couples)) :
+        for j in couples[i] :
+
+            if j in occ :
+                occ[j].append(i)
+            else :
+                occ[j] = [i]
+    return occ
 
 
 def debug_compute_score (imLeftName, imRightName) :
