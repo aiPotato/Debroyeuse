@@ -7,6 +7,40 @@ from PIL import Image
 CATALOG = []
 
 
+
+def unshred(prefix, path) :
+    """
+    unshred the strips of an image
+
+    """
+    images = images_stream(path, prefix)
+
+    matrix = compute_score_matrix(images)
+    for i in matrix :
+        print(i)
+    couples = score_couples(matrix)
+    print (couples)
+    imagesOrder = restore_order(couples)
+    print(imagesOrder)
+    images_stream_close(images)
+
+    images = images_stream(path,prefix)
+    print(len(images))
+
+    leftImage = images[imagesOrder[0]-1]
+    imagesOrder.pop(0)
+
+    while imagesOrder != [] :
+        rightImage = images[imagesOrder[0]-1]
+        leftImage = join_pictures(leftImage,rightImage)
+        imagesOrder.pop(0)
+
+    leftImage.save(path+prefix+"unshred"+".png")
+
+    images_stream_close(images)
+
+
+
 def is_black(coord,image):
     """
     Test if the pixel of coordinate "coord" is a nuance of black
@@ -91,12 +125,6 @@ def number_of_images (path, prefix) :
     return int(os.popen("ls "+path+" | grep "+prefix+" | wc").read().split()[0])
 
 
-def find_extremity_band (prefix_path, reverse = False) :
-    """
-    Find the start image if reverse is False, the end image if True
-    """
-    pass
-
 def find_extremity_patterns (image) :
     """
     Find the extremity pattern of the image and color them
@@ -137,19 +165,6 @@ def generate_catalog (images) :
     for img in images :
         catalog_append(img)
 
-
-def clean_catalog() :
-    """
-    Deletes doubles in the CATALOG of patterns
-    """
-    copy = CATALOG.copy()
-    for i in copy :
-        for j in range:
-            pass
-
-
-
-
 def score_calculation(leftImage, rightImage):
     """
     Computes the score of the image
@@ -163,16 +178,23 @@ def score_calculation(leftImage, rightImage):
 
     x_size, y_size = image.size
     unshred_patterns = []
-    score=0
+
     for i in range(y_size):
         for j in range(frontier-2,frontier+3) :
             if is_blue((j,i), image):
                 unshred_patterns.append( Pattern(extract_pattern(image,(j,i),colors.green,is_blue)) )
 
+    score=0
     for i in unshred_patterns:
-        for j in CATALOG:
-            if i.distance(j) <= 0.01:
-                score += 1
+        cpt = 0
+        found = False
+        while not found :
+            if i.distance(CATALOG[cpt]) < 0.01:
+                found = True
+                score +=1
+            cpt += 1
+            if cpt == len(CATALOG):
+                found = True
     return score
 
 
@@ -211,6 +233,10 @@ def images_stream (path, prefix) :
 
     return images
 
+def images_stream_close(images) :
+    for i in images :
+        i.close()
+
 def find_extremities (images) :
     """
     Color the extremity pattern of all the images in the list images
@@ -218,12 +244,10 @@ def find_extremities (images) :
     for img in images :
         find_extremity_patterns(img)
 
-def compute_score_matrix (path, prefix) :
+def compute_score_matrix (images) :
     """
     Return the matrix of the scores
     """
-
-    images = images_stream(path,prefix)
 
     find_extremities(images)
 
@@ -250,29 +274,53 @@ def compute_score_matrix (path, prefix) :
 
     return matrix
 
-def prefix_couples(score_matrix) :
+def score_couples(score_matrix) :
     """
     give the list of the matching couples of pictures
     """
 
     couples = []
 
+    minimumScore = min(line_scores(score_matrix))       # Error : int object is not iterrable
+
     for i in range(len(score_matrix)) :
         maxScore = 0
         maxIndex = 0
+
         for j in range(len(score_matrix[i])) :
+
             if score_matrix[i][j] == None :
                 continue
             elif maxScore < score_matrix[i][j]:
                 maxScore = score_matrix[i][j]
                 maxIndex = j
 
-        if maxScore == 0 :
+        if maxScore == minimumScore :
             couples.append((i+1,))
         else :
             couples.append((i+1,maxIndex+1))
 
     return couples
+
+def line_scores (score_matrix) :
+    """
+    gives the total score of each line of the score matrix in a list
+
+    :param score_matrix: the score_matrix of the images
+    :type score_matrix: list
+    :return: the list containing the total scores of each lin of the matrix
+    :rtype: list
+    """
+    scoreList = []
+    for line in score_matrix :
+        score = 0
+        for j in line :
+            if j != None :
+                score += j
+        scoreList.append(score)
+
+    return score
+
 
 def restore_order(couples) :
     """
@@ -280,32 +328,55 @@ def restore_order(couples) :
     :param couples: a list of tuples containing the indices of the matching pairs of pictures
     :type couples: list
     """
+
+    firstStrip = first_strip (couples)
+
+    order = [firstStrip]
+
+    while not ( len(couples)==1 and len(couples[0])==1 ) :
+        cpt = 0
+        found = False
+        while not found :
+            if couples[cpt][0]==order[-1]:
+                order.append(couples[cpt][1])
+                found = True
+                couples.pop(cpt)
+            cpt+=1
+
+    return order
+
+
+def first_strip (couples) :
+    """
+    Finds the first strip of the list and returns it
+    """
     occDict = occur_dict(couples)
 
-    keys = occDict.keys()
-    values = occDict.values()
+    cpt = 1
+    found = False
+    while not found :
+        if occDict[cpt]==1:
+            found = True
+            index = cpt
+        cpt += 1
 
-    index = 0
-
-    for i in range(len(values)) :
-        if len(values[i]) == 1 :                                    # unfinished
-            first = keys[i]
-
-
+    return index
 
 
 def occur_dict(couples) :
     """
-    create the dictionnary of occurences and positions of each prefix in the list of tuples 'couples'
+    create the dictionnary of positions of each prefix in the list of tuples 'couples'
     """
     occ = dict()
     for i in range(len(couples)) :
+
         for j in couples[i] :
 
             if j in occ :
-                occ[j].append(i)
+                occ[j] += 1
             else :
-                occ[j] = [i]
+                occ[j] = 1
+
     return occ
 
 
@@ -322,3 +393,8 @@ def debug_compute_score (imLeftName, imRightName) :
     print( score_calculation(imJoin) )
     imJoin.save("test.png")
     return imJoin
+
+if __name__ == '__main__' :
+    import sys
+    if len (sys.argv) == 3 :
+        unshred(sys.argv[1],sys.argv[2])
