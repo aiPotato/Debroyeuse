@@ -281,7 +281,7 @@ def score_couples(score_matrix) :
 
     couples = []
 
-    minimumScore = min(line_scores(score_matrix))       # Error : int object is not iterrable
+    minimumScore = min(line_scores(score_matrix))
 
     for i in range(len(score_matrix)) :
         maxScore = 0
@@ -295,7 +295,7 @@ def score_couples(score_matrix) :
                 maxScore = score_matrix[i][j]
                 maxIndex = j
 
-        if maxScore == minimumScore :
+        if maxScore <= minimumScore :
             couples.append((i+1,))
         else :
             couples.append((i+1,maxIndex+1))
@@ -319,7 +319,7 @@ def line_scores (score_matrix) :
                 score += j
         scoreList.append(score)
 
-    return score
+    return scoreList
 
 
 def restore_order(couples) :
